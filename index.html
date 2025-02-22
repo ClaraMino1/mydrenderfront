@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta de Ventas por ISBN</title>
+    
+</head>
+<body>
+    <h2>Consulta de Ventas por ISBN</h2>
+
+    <label for="isbn">Ingrese el ISBN:</label>
+    <input type="text" id="isbn" placeholder="978-XXXXX-XXXXX">
+    <button onclick="fetchData()">Buscar</button>
+
+    <p id="error-message" style="color: red;"></p>
+    <p id="loading" style="display: none;">Cargando datos...</p>
+
+    <table id="data-table">
+        <thead>
+            <tr>
+                <th>Título</th>
+                <th>Ventas Totales</th>
+                <th>Ventas Físicas</th>
+                <th>Ventas Digitales</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Los datos se insertarán aquí dinámicamente -->
+        </tbody>
+    </table>
+
+    <script>
+        async function fetchData() {
+            const isbn = document.getElementById('isbn').value.trim();
+            const errorMessage = document.getElementById('error-message');
+            const loadingElement = document.getElementById('loading');
+            const tableBody = document.querySelector('#data-table tbody');
+
+            errorMessage.textContent = '';
+            tableBody.innerHTML = '';
+            
+            if (!isbn) {
+                errorMessage.textContent = 'Por favor, ingresa un ISBN.';
+                return;
+            }
+
+            loadingElement.style.display = 'block';
+
+            try {
+                const response = await fetch(`https://mydrender.onrender.com/readExcelByISBN?isbn=${isbn}`);
+                if (!response.ok) {
+                    throw new Error('No se pudo obtener la información del servidor');
+                }
+                const data = await response.json();
+
+                if (data.error) {
+                    errorMessage.textContent = data.error;
+                    return;
+                }
+
+                if (data.titulo && data.ventasPorMes.length > 0) {
+                    data.ventasPorMes.forEach(venta => {
+                        const rowElement = document.createElement('tr');
+                        rowElement.innerHTML = `
+                            <td>${data.titulo || '0'}</td>
+                            <td>${venta.ventasTotales || '0'}</td>
+                            <td>${venta.cantidadF || '0'}</td>
+                            <td>${venta.ventasDigitales || '0'}</td>
+                        `;
+                        tableBody.appendChild(rowElement);
+                    });
+                } else {
+                    tableBody.innerHTML = '<tr><td colspan="4">No se encontraron datos para el ISBN ingresado.</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                errorMessage.textContent = 'Error al obtener los datos: ' + error.message;
+            } finally {
+                loadingElement.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
